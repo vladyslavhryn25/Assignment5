@@ -9,18 +9,18 @@ enum class TokenType
     Minus,
     Star,
     Slash,
-    LParen,      
-    RParen,      
-    Comma,       
-    LBrace,      
-    RBrace,       
-    Assign,   
-    End           
+    LParen,
+    RParen,
+    Comma,
+    LBrace,
+    RBrace,
+    Assign,
+    End
 };
 
 struct Token
 {
     TokenType type;
-    std::string text;  
-    double value = 0.0;  
+    std::string text;
+    double value = 0.0;
 };

@@ -1,31 +1,12 @@
 ﻿#include <iostream>
 #include <string>
-#include "Lexer.h"
-
-std::string tokenTypeName(TokenType type)
-{
-    switch (type)
-    {
-    case TokenType::Number:     return "Number";
-    case TokenType::Identifier: return "Identifier";
-    case TokenType::Plus:       return "Plus";
-    case TokenType::Minus:      return "Minus";
-    case TokenType::Star:       return "Star";
-    case TokenType::Slash:      return "Slash";
-    case TokenType::LParen:     return "LParen";
-    case TokenType::RParen:     return "RParen";
-    case TokenType::Comma:      return "Comma";
-    case TokenType::LBrace:     return "LBrace";
-    case TokenType::RBrace:     return "RBrace";
-    case TokenType::Assign:     return "Assign";
-    case TokenType::End:        return "End";
-    }
-    return "?";
-}
+#include "Interpreter.h"
 
 int main()
 {
     std::string input;
+    Interpreter interpreter;
+
     while (std::getline(std::cin, input))
     {
         if (input == "exit" || input == "quit")
@@ -35,16 +16,15 @@ int main()
 
         try
         {
-            Lexer lexer(input);
-            std::vector<Token> tokens = lexer.tokenize();
+            double result = interpreter.run(input);
 
-            for (const Token& token : tokens)
-                std::cout << tokenTypeName(token.type) << "(" << token.text << ") ";
-            std::cout << std::endl;
+            bool isVarDeclaration = input.size() >= 3 && input.substr(0, 3) == "var";
+            if (!isVarDeclaration)
+                std::cout << result << std::endl;
         }
         catch (const std::exception& e)
         {
-            std::cout << "Lexer error: " << e.what() << std::endl;
+            std::cout << "Error: " << e.what() << std::endl;
         }
     }
     return 0;
