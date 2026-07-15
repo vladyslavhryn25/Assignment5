@@ -2,8 +2,14 @@
 #include <string>
 #include "Interpreter.h"
 
+bool startsWithKeyword(const std::string& input, const std::string& keyword)
+{
+    return input.size() >= keyword.size() && input.substr(0, keyword.size()) == keyword;
+}
+
 int main()
 {
+    int* leak = new int[100];
     std::string input;
     Interpreter interpreter;
 
@@ -18,8 +24,8 @@ int main()
         {
             double result = interpreter.run(input);
 
-            bool isVarDeclaration = input.size() >= 3 && input.substr(0, 3) == "var";
-            if (!isVarDeclaration)
+            bool isDeclaration = startsWithKeyword(input, "var") || startsWithKeyword(input, "def");
+            if (!isDeclaration)
                 std::cout << result << std::endl;
         }
         catch (const std::exception& e)

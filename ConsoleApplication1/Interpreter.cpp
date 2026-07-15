@@ -47,7 +47,6 @@ double Interpreter::parseFactor()
         std::string name = current().text;
         advance();
 
-    
         if (current().type == TokenType::LParen)
         {
             advance();
@@ -84,10 +83,13 @@ double Interpreter::parseFactor()
                 return std::min(args[0], args[1]);
             }
 
+          
+            if (functions.count(name) > 0)
+                return callUserFunction(name, args);
+
             throw std::runtime_error("Unknown function: " + name);
         }
 
-       
         if (variables.count(name) == 0)
             throw std::runtime_error("Unknown variable: " + name);
         return variables[name];
@@ -126,13 +128,102 @@ double Interpreter::parseExpression()
     return left;
 }
 
+double Interpreter::callUserFunction(const std::string& name, const std::vector<double>& args)
+{
+    FunctionDef def = functions[name];
+
+    if (args.size() != def.params.size())
+        throw std::runtime_error("Function '" + name + "' expects " +
+            std::to_string(def.params.size()) + " arguments");
+
+  
+    std::map<std::string, double> savedVariables = variables;
+
+    for (size_t i = 0; i < def.params.size(); i++)
+        variables[def.params[i]] = args[i];
+
+ 
+    std::vector<Token> savedTokens = tokens;
+    size_t savedPos = pos;
+
+
+    tokens = def.body;
+    pos = 0;
+    double result = parseExpression();
+
+    tokens = savedTokens;
+    pos = savedPos;
+    variables = savedVariables;
+
+    return result;
+}
+
+void Interpreter::parseDef()
+{
+    advance();
+
+    if (current().type != TokenType::Identifier)
+        throw std::runtime_error("Expected function name after 'def'");
+    std::string name = current().text;
+    advance();
+
+    if (functions.count(name) > 0)
+        throw std::runtime_error("Function '" + name + "' is already defined");
+
+    if (!match(TokenType::LParen))
+        throw std::runtime_error("Expected '(' after function name");
+
+    std::vector<std::string> params;
+
+    if (current().type != TokenType::RParen)
+    {
+        if (current().type != TokenType::Identifier)
+            throw std::runtime_error("Expected parameter name");
+        params.push_back(current().text);
+        advance();
+
+        while (match(TokenType::Comma))
+        {
+            if (current().type != TokenType::Identifier)
+                throw std::runtime_error("Expected parameter name");
+            params.push_back(current().text);
+            advance();
+        }
+    }
+
+    if (!match(TokenType::RParen))
+        throw std::runtime_error("Expected ')'");
+
+    if (!match(TokenType::LBrace))
+        throw std::runtime_error("Expected '{'");
+
+    std::vector<Token> body;
+    while (current().type != TokenType::RBrace)
+    {
+        if (current().type == TokenType::End)
+            throw std::runtime_error("Expected '}' to close function body");
+        body.push_back(current());
+        advance();
+    }
+    advance();
+
+    Token endToken;
+    endToken.type = TokenType::End;
+    endToken.text = "";
+    body.push_back(endToken);
+
+    FunctionDef def;
+    def.params = params;
+    def.body = body;
+    functions[name] = def;
+}
+
 double Interpreter::run(const std::string& line)
 {
     Lexer lexer(line);
     tokens = lexer.tokenize();
     pos = 0;
 
-  
     if (current().type == TokenType::Identifier && current().text == "var")
     {
         advance();
@@ -151,6 +242,12 @@ double Interpreter::run(const std::string& line)
         double value = parseExpression();
         variables[name] = value;
         return value;
+    }
+
+    if (current().type == TokenType::Identifier && current().text == "def")
+    {
+        parseDef();
+        return 0;
     }
 
     return parseExpression();
